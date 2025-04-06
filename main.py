@@ -25,7 +25,7 @@ def decode(individual):
     """
     # Cria uma lista de tuplas (chave, índice) e ordena com base na chave
     indexed_keys = list(zip(individual, range(N)))
-    indexed_keys.sort()  # Ordena implicitamente pelo primeiro elemento (chave)
+    indexed_keys.sort()  # Ordena pelo primeiro elemento (chave)
     
     bins = []
     current_bin = []
@@ -81,7 +81,7 @@ def brkga(pop_size=50, elite_fraction=0.2, mutant_fraction=0.15, inheritance_pro
     
     for gen in range(generations):
         # Ordena a população pelo fitness (menor número de bins)
-        population.sort(key=lambda ind: fitness(ind))
+        population.sort(key=lambda ind: fitness(ind)) # ordena do melhor (menor fitness, mais bins) para o pior (maior fitness, menos bins)
         current_best = fitness(population[0])
         if current_best < best_fit:
             best_fit = current_best
