@@ -8,10 +8,10 @@ import numpy as np
 # Camisa G: 1.90m, 600 unidades
 # Camisa GG: 2.20m, 200 unidades
 items = []
-items.extend([("P", 1.5)] * 500)
-items.extend([("M", 1.55)] * 300)
-items.extend([("G", 1.90)] * 600)
-items.extend([("GG", 2.20)] * 200)
+items.extend([("P", 1.5)] * 5)
+items.extend([("M", 1.55)] * 3)
+items.extend([("G", 1.90)] * 6)
+items.extend([("GG", 2.20)] * 2)
 N = len(items)  # Número total de itens
 
 bin_capacity = 5.0  # Capacidade de cada bin em metros
@@ -26,7 +26,7 @@ def decode(individual):
     # Cria uma lista de tuplas (chave, índice) e ordena com base na chave
     indexed_keys = list(zip(individual, range(N)))
     indexed_keys.sort()  # Ordena implicitamente pelo primeiro elemento (chave)
-
+    
     bins = []
     current_bin = []
     current_sum = 0.0
@@ -125,7 +125,7 @@ import matplotlib.pyplot as plt
 # Execução do algoritmo
 if __name__ == "__main__":
     start_time = time.time()
-    qtd_geracoes = 100000
+    qtd_geracoes = 100
     best_ind, best_bins = brkga(generations=qtd_geracoes)
     end_time = time.time()
     elapsed_time = end_time - start_time
