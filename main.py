@@ -1,166 +1,181 @@
 import random
-import numpy as np
+import time
+import matplotlib.pyplot as plt
+import os
+
+# Tamanhos e seus comprimentos em metros
+ITEM_TYPES = {
+    "P": 1.5,
+    "M": 1.55,
+    "G": 1.90,
+    "GG": 2.20,
+}
+
+n = 10
+# Quantidade fixa de camisas de cada tipo
+CAMISA_COUNTS = {
+    "P": n*5,
+    "M": n*15,
+    "G": n*10,
+    "GG": n*7,
+}
+
+BIN_CAPACITY = 5.0
+N = sum(CAMISA_COUNTS.values())  # Número total de camisas
 
 
-# Definição dos itens: cada camisa tem tamanho e demanda.
-# Camisa P: 1.5m, 500 unidades
-# Camisa M: 1.55m, 300 unidades
-# Camisa G: 1.90m, 600 unidades
-# Camisa GG: 2.20m, 200 unidades
-items = []
-items.extend([("P", 1.5)] * 5)
-items.extend([("M", 1.55)] * 3)
-items.extend([("G", 1.90)] * 6)
-items.extend([("GG", 2.20)] * 2)
-N = len(items)  # Número total de itens
-
-bin_capacity = 5.0  # Capacidade de cada bin em metros
-
-def decode(individual):
+def decode(individual, verbose=False):
     """
-    Decodifica o vetor de chaves aleatórias em uma solução:
-    - Ordena os itens com base nas chaves associadas.
-    - Aloca os itens em bins, usando o método first-fit.
-    Retorna uma lista de bins, onde cada bin é uma lista de índices dos itens.
+    Aplica o first-fit para empacotar a lista de camisas.
+    Recebe um indivíduo e retorna ele separado em bins e também o desperdício total
     """
-    # Cria uma lista de tuplas (chave, índice) e ordena com base na chave
-    indexed_keys = list(zip(individual, range(N)))
-    indexed_keys.sort()  # Ordena pelo primeiro elemento (chave)
-    
     bins = []
     current_bin = []
     current_sum = 0.0
+    soma_de_sobras = 0.0
 
-    for _, i in indexed_keys:
-        size = items[i][1]
-        # Se couber no bin atual, adiciona; senão, inicia um novo bin
-        if current_sum + size <= bin_capacity:
-            current_bin.append(i)
+    for i, tipo in enumerate(individual):
+        size = ITEM_TYPES[tipo]
+        if current_sum + size <= BIN_CAPACITY:
+            current_bin.append((i, tipo, size))
             current_sum += size
         else:
             bins.append(current_bin)
-            current_bin = [i]
+            sobra = BIN_CAPACITY - current_sum
+            soma_de_sobras += sobra
+            current_bin = [(i, tipo, size)]
             current_sum = size
 
     if current_bin:
         bins.append(current_bin)
+        sobra = BIN_CAPACITY - current_sum
+        soma_de_sobras += sobra
 
-    return bins
+    if verbose:
+        for bidx, bin_items in enumerate(bins):
+            desc = [f"{tipo}({size})" for _, tipo, size in bin_items]
+            print(f"Bin {bidx + 1}: {desc} - total: {sum(size for _, _, size in bin_items):.2f}m")
+
+    return bins, soma_de_sobras
 
 
 def fitness(individual):
-    """
-    Função de avaliação: número de bins utilizados (menor é melhor).
-    """
-    bins = decode(individual)
-    return len(bins)
+    bins, disperdicio = decode(individual)
+    return disperdicio
 
 
-x_geracoes = []
-y_bins = []
-def brkga(pop_size=50, elite_fraction=0.2, mutant_fraction=0.15, inheritance_prob=0.7, generations=1000):
+def random_individual():
     """
-    Implementa o BRKGA (Biased Random-Key Genetic Algorithm)
-    
-    Parâmetros:
-      pop_size         : Tamanho da população
-      elite_fraction   : Fração da população considerada elite
-      mutant_fraction  : Fração de indivíduos gerados aleatoriamente (mutantes)
-      inheritance_prob : Probabilidade de herdar o gene do pai elite
-      generations      : Número de gerações
-    Retorna o melhor indivíduo encontrado e seu fitness.
+    Gera um indivíduo aleatório com as quantidades fixas de cada tipo.
     """
-    # Inicializa a população com indivíduos aleatórios
-    population = []
-    for _ in range(pop_size):
-        individual = [random.random() for _ in range(N)]
-        population.append(individual)
-    
+    base = []
+    for tipo, qtd in CAMISA_COUNTS.items():
+        base.extend([tipo] * qtd)
+    random.shuffle(base)
+    return base
+
+
+def biased_crossover_respecting_counts(elite, non_elite, inherit_prob=0.7):
+    """
+    Realiza cruzamento enviesado mantendo a quantidade fixa de cada tipo.
+    """
+    counts = CAMISA_COUNTS.copy()
+    child = []
+
+    options = [
+        elite[i] if random.random() < inherit_prob else non_elite[i]
+        for i in range(len(elite))
+    ]
+
+    for tipo in options:
+        if counts[tipo] > 0:
+            child.append(tipo)
+            counts[tipo] -= 1
+
+    for tipo, restante in counts.items():
+        child.extend([tipo] * restante)
+
+    random.shuffle(child)
+    return child
+
+
+def brkga(pop_size=100, elite_frac=0.2, mutant_frac=0.15, inherit_prob=0.7, generations=1000):
+    population = [random_individual() for _ in range(pop_size)]
+    elite_size = int(elite_frac * pop_size)
+    mutant_size = int(mutant_frac * pop_size)
     best_individual = None
     best_fit = float('inf')
-    
-    for gen in range(generations):
-        # Ordena a população pelo fitness (menor número de bins)
-        population.sort(key=lambda ind: fitness(ind)) # ordena do melhor (menor fitness, mais bins) para o pior (maior fitness, menos bins)
-        current_best = fitness(population[0])
-        if current_best < best_fit:
-            best_fit = current_best
-            best_individual = population[0][:]
-            print(f"Geração {gen}: Melhor solução usa {best_fit} bins")
-            x_geracoes.append(gen)
-            y_bins.append(best_fit)
 
-        
-        # Definição dos tamanhos dos grupos elite e de mutantes
-        elite_size = int(elite_fraction * pop_size)
-        mutant_size = int(mutant_fraction * pop_size)
-        
-        new_population = population[:elite_size]  # preserva os elites
-        
-        # Adiciona indivíduos mutantes (aleatórios)
+    history_gen, history_fit = [], []
+
+    for gen in range(generations):
+        population.sort(key=fitness)
+        current_fit = fitness(population[0])
+        if current_fit < best_fit:
+            best_fit = current_fit
+            best_individual = population[0][:]
+            bins_usados = len(decode(best_individual)[0])
+            print(f"Melhorou na geração \t{gen}/{generations} \tdesperdício {best_fit:.2f}m \t bins: {bins_usados}")
+
+            history_gen.append(gen)
+            history_fit.append(best_fit)
+
+        new_population = population[:elite_size]
+
         for _ in range(mutant_size):
-            mutant = [random.random() for _ in range(N)]
-            new_population.append(mutant)
-        
-        # Preenche o restante da nova população com descendentes gerados por crossover enviesado
+            new_population.append(random_individual())
+
         while len(new_population) < pop_size:
-            elite_parent = random.choice(population[:elite_size])
-            non_elite_parent = random.choice(population[elite_size:])
-            child = []
-            for i in range(N):
-                if random.random() < inheritance_prob:
-                    child.append(elite_parent[i])
-                else:
-                    child.append(non_elite_parent[i])
+            elite = random.choice(population[:elite_size])
+            non_elite = random.choice(population[elite_size:])
+            child = biased_crossover_respecting_counts(elite, non_elite, inherit_prob)
             new_population.append(child)
-        
+
         population = new_population
 
-    x_geracoes.append(generations)
-    y_bins.append(best_fit)
-    return best_individual, best_fit
+    return best_individual, best_fit, history_gen, history_fit
 
-import time
-import matplotlib.pyplot as plt
-# Execução do algoritmo
-if __name__ == "__main__":
-    start_time = time.time()
-    qtd_geracoes = 100
-    best_ind, best_bins = brkga(generations=qtd_geracoes)
-    end_time = time.time()
-    elapsed_time = end_time - start_time
-    print(f"Tempo de execução: {elapsed_time:.2f} segundos\n")
 
-    print("Melhor solução (encontrada):")
-    print("Número de bins utilizados:", best_bins)
-    desperdicio_total = -(sum(items[i][1] for i in range(N)) - best_bins * bin_capacity)
-    print("Disperdício total:", desperdicio_total,"m")
-    # print("Melhor indivíduo:")
-    # for i in best_ind:
-    #     print(f"{i:.2f}", end=" \n")
+def main(gen=10**3):
+    generations = gen
 
-    bins_solution = decode(best_ind)
-    for idx, bin_items in enumerate(bins_solution):
-        # Exibe os itens de cada bin com seus respectivos tipos e tamanhos
-        bin_desc = [f"{items[i][0]}({items[i][1]})" for i in bin_items]
-        # print(f"Bin {idx+1}: {bin_desc} : tamanho total: {sum(items[i][1] for i in bin_items):.2f}m")
+    #medir tempo de execução
+    start = time.time()
+    print("tempo de inicio:", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(start)))
+    best_ind, _, gen_hist, fit_hist = brkga(generations=generations)
+    elapsed = time.time() - start
 
-    
-    # Gráfico de evolução do número de bins utilizados ao longo das gerações
-    plt.plot(x_geracoes, y_bins, marker='o')
-    
+    solution_bins, desperdicio_total = decode(best_ind)
+    num_bins_utilizados = len(solution_bins)
 
-    titulo = str("Evolução do número de bins utilizados ao longo das gerações"+"\n"+
-        "Número de bins: "+str(best_bins)+"\n"+
-        "Disperdício total: "+str(desperdicio_total)+"m"+"\n"+
-        "Tempo de execução: "+str(round(elapsed_time,2))+" segundos")
-    plt.title(titulo,fontsize=8)
+    print(f"\nTempo de execução: {elapsed:.2f} segundos")
+    print(f"Número de bins utilizados: {num_bins_utilizados}")
+    print(f"Desperdício total: {desperdicio_total:.2f}m")
+
+    for idx, bin_items in enumerate(solution_bins):
+        desc = [f"{tipo}({size})" for _, tipo, size in bin_items]
+        total = sum(size for _, _, size in bin_items)
+        print(f"Bin {idx + 1}: {desc} - total: {total:.2f}m")
+
+    # Criar pasta de saída se necessário
+    os.makedirs("resultados", exist_ok=True)
+
+    plt.plot(gen_hist, fit_hist, marker='o')
+    title = (
+        "Evolução do desperdício\n"
+        f"Número de bins: {num_bins_utilizados} | Desperdício: {desperdicio_total:.2f}m\n"
+        f"Tempo: {elapsed:.2f}s"
+    )
+    plt.title(title, fontsize=8)
     plt.xlabel("Gerações")
-    plt.ylabel("Número de bins")
-    plt.grid()
+    plt.ylabel("Desperdício total (m)")
+    plt.grid(True)
     plt.xticks(fontsize=8)
     plt.yticks(fontsize=8)
-    nome_arquivo = "resultados/"+str(qtd_geracoes)+"gen.png"
-    plt.savefig(nome_arquivo, dpi=300, bbox_inches='tight')
     plt.tight_layout()
+    plt.savefig(f"resultados/brkga_{generations}.png", dpi=300)
     plt.show()
+
+
+if __name__ == "__main__":
+    main()
