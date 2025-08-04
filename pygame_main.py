@@ -288,17 +288,17 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 
 # Parâmetros de teste
-print(f"Vamos rodar o problema com estas quantidades de gerações:")
-# num_geracoes = [100,500,1000, 5000, 10000, 50000, 100000, 500000] # verificar a evolução das soluções
-# num_geracoes = [1000000]                                          # tentar achar um ótimo local
+num_repeticoes = 1                                                  # multiplicador do tempo computacional
+print(f"Vamos rodar o problema {num_repeticoes}x. Estas serão as quantidades de gerações:")
+# num_geracoes = [100,500,1000, 5000, 10000, 50000, 100000, 500000] # verificar a evolução das soluções (lento)
+# num_geracoes = [1000000]                                          # tentar achar um ótimo 
 num_geracoes = [10,100,1000]                                        # exemplo rápido
 print(num_geracoes)
-num_repeticoes = 1
+
 cores = ['royalblue', 'darkorange', 'seagreen', 'firebrick', 'purple']
 
 resultados_individuais = []
 resultados_medios = []
-
 for n_geracoes in num_geracoes:
     tempos = []
     desperdicios = []
@@ -325,7 +325,7 @@ for n_geracoes in num_geracoes:
     resultados_medios.append((n_geracoes, tempo_medio, desperdicio_medio))
 
 # ================== SALVAR COM TIMESTAMP =====================
-output_dir = os.path.expanduser("~/brkga_resultados")  # pasta "brkga_resultados" na pasta do usuário
+output_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "brkga_resultados")
 os.makedirs(output_dir, exist_ok=True)
 
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
