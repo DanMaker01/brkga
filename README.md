@@ -8,6 +8,8 @@
 
 🎮 A aplicação conta com uma interface interativa desenvolvida em Pygame, que permite observar em tempo real o desempenho das soluções e o comportamento da população ao longo das gerações. Também há uma versão automatizada voltada para testes de performance e experimentos. Os dados gerados são exportados em arquivos .csv com timestamp, e gráficos são produzidos com Matplotlib para facilitar a análise do desperdício de material e da eficiência de empacotamento.
 
+▶️ Para executar o código use apenas: python main.py
+
 📦 Parâmetros do Problema Exemplo (resultados na pasta)
 
 Demanda de Camisas:
