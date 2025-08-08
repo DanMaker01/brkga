@@ -288,11 +288,11 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 
 # Parâmetros de teste
-num_repeticoes = 1                                                  # multiplicador do tempo computacional
+num_repeticoes = 2                                                  # multiplicador do tempo computacional
 print(f"Vamos rodar o problema {num_repeticoes}x. Estas serão as quantidades de gerações:")
 # num_geracoes = [100,500,1000, 5000, 10000, 50000, 100000, 500000] # verificar a evolução das soluções (lento)
-# num_geracoes = [1000000]                                          # tentar achar um ótimo 
-num_geracoes = [10,100,1000]                                        # exemplo rápido
+num_geracoes = [5000000]                                          # tentar achar um ótimo 
+# num_geracoes = [10,100,1000]                                        # exemplo rápido
 print(num_geracoes)
 
 cores = ['royalblue', 'darkorange', 'seagreen', 'firebrick', 'purple']
